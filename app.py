@@ -23,6 +23,7 @@ if "fichas" not in st.session_state:
 Nome: ?
 Raça: ?
 Classe: ? | Nível: 1
+Background (Terra): ?
 XP: 0/300
 HP: ? | CA: ?
 
@@ -106,26 +107,36 @@ with st.sidebar:
 
     if st.button("🔄 Nova Aventura"):
         st.session_state.mensagens = []
-        st.session_state.fichas = "=== HERÓI PRINCIPAL ===\n(Crie seu personagem com a Deusa)"
+        st.session_state.fichas = "=== HERÓI PRINCIPAL ===\nNome: ?\nRaça: ?\nClasse: ? | Nível: 1\nBackground (Terra): ?"
         st.rerun()
 
-# --- PROMPT MESTRE CRIADOR ---
+# --- PROMPT MESTRE CRIADOR REVISADO ---
 prompt_base = f"""
-Você é o Mestre de Jogo (DM) e o AUTOR PRINCIPAL de uma aventura RPG Anime Isekai (Regras D&D 5e).
+Você é o Mestre de Jogo (DM) e o AUTOR de uma aventura RPG Anime Isekai.
+REGRA DE OURO: USE ESTRITAMENTE OS MANUAIS OFICIAIS DE DUNGEONS & DRAGONS 5ª EDIÇÃO (D&D 5e). É expressamente proibido assumir a ficha do jogador sem ele escolher.
+
 O formato da aventura atual é: {tipo_aventura}.
 O tom da história atual é: {tom_historia}.
 
-O SEU PAPEL COMO AUTOR:
-1. O JOGADOR NÃO CRIA A HISTÓRIA, ELE APENAS REAGE. VOCÊ DEVE CRIAR O MUNDO, OS MISTÉRIOS, OS VILÕES E AS MISSÕES.
-2. Após a criação do personagem pela Deusa, jogue o herói no mundo e APRESENTE UM GANCHO DE AVENTURA CLARO (um ataque à vila, um cartaz de procurado, um NPC pedindo ajuda urgente).
-3. Seja proativo: não pergunte apenas "o que você faz?", descreva eventos acontecendo ao redor do jogador para forçá-lo a agir.
-4. Crie NPCs memoráveis e Companheiros de Grupo que interajam com o herói.
+FASES DO JOGO (Siga rigorosamente):
 
-REGRAS DE SISTEMA (D&D 5e):
-1. Narre a aventura, role os dados (d20) secretamente e aplique os resultados com base na ficha do jogador.
-2. Guie a criação da ficha no início e ofereça as opções exatas de classe quando houver Level Up.
-3. ATUALIZAÇÃO DA FICHA: SEMPRE que a ficha mudar, envie a Ficha Atualizada NO FINAL da mensagem, escondida dentro das tags <FICHAS> e </FICHAS>.
-4. Consulte sempre as regras no DADOS DO ESCUDO DO MESTRE abaixo antes de agir.
+FASE 1: CRIAÇÃO DO HERÓI (OBRIGATÓRIO AGORA)
+- A sua primeira mensagem DEVE SER a Deusa da Reencarnação recebendo a alma do jogador.
+- NUNCA assuma a raça ou classe do jogador. O jogador começa como uma alma sem forma.
+- Informe ao jogador que ele pode escolher entre as raças oficiais do D&D 5e e QUALQUER UMA das 12 classes oficiais: Bárbaro, Bardo, Bruxo, Clérigo, Druida, Feiticeiro, Guerreiro, Ladino, Mago, Monge, Paladino, Patrulheiro.
+- Peça para ele definir na resposta: NOME, RAÇA, CLASSE e o seu BACKGROUND NA TERRA (Quem ele era, qual a sua profissão antes de morrer ou como reencarnou).
+- Aguarde a resposta do jogador antes de prosseguir.
+
+FASE 2: INÍCIO DA AVENTURA (Apenas após o jogador responder)
+- Com base nas escolhas dele, distribua os atributos (Array Padrão D&D 5e: 15, 14, 13, 12, 10, 8), calcule o HP e CA iniciais.
+- Crie o bloco oculto <FICHAS> com os dados completos do personagem (incluindo o Background da Terra).
+- Narre a reencarnação dele no novo mundo e lance um GANCHO DE AVENTURA IMEDIATO (um conflito, um monstro atacando, um NPC pedindo socorro). Integre detalhes do background da Terra na narrativa se possível.
+
+FASE 3: MECÂNICAS E JOGABILIDADE D&D 5E
+- O jogador não cria a história, apenas reage. Crie os NPCs, Monstros e perigos.
+- Role os dados (d20) secretamente para o jogador e monstros, aplicando os modificadores da ficha.
+- ATUALIZAÇÃO DA FICHA: SEMPRE que a ficha mudar (ou for recém criada), envie a Ficha Atualizada NO FINAL da sua mensagem, escondida dentro das tags <FICHAS> e </FICHAS>.
+- Consulte sempre o ESCUDO DO MESTRE antes de aplicar efeitos.
 """
 
 # --- PREPARAÇÃO DO CÉREBRO DA IA ---
@@ -146,7 +157,7 @@ def processar_resposta_ia(mensagens_enviadas):
     resposta_ia = client.chat.completions.create(
         messages=mensagens_enviadas,
         model="llama-3.3-70b-versatile",
-        temperature=0.8, # Aumentado levemente para dar mais criatividade narrativa ao DM
+        temperature=0.8, 
         max_tokens=1000,
     )
     texto_bruto = resposta_ia.choices[0].message.content
@@ -163,7 +174,7 @@ def processar_resposta_ia(mensagens_enviadas):
     return texto_limpo
 
 if len(st.session_state.mensagens) == 0 and not acao_jogador:
-    with st.spinner("A Deusa da Reencarnação está falando..."):
+    with st.spinner("A Deusa da Reencarnação está aguardando sua alma..."):
         try:
             texto_dm_limpo = processar_resposta_ia(mensagens_para_api)
             st.session_state.mensagens.append({"role": "assistant", "content": texto_dm_limpo})
@@ -180,7 +191,7 @@ if acao_jogador:
         
     with st.chat_message("assistant", avatar="🧙‍♂️"):
         caixa_resposta = st.empty()
-        caixa_resposta.markdown("🎲 *O Mestre está construindo o mundo e rolando os dados...*")
+        caixa_resposta.markdown("🎲 *O Mestre está consultando as regras da 5ª Edição...*")
         
         try:
             texto_dm_limpo = processar_resposta_ia(mensagens_para_api)
